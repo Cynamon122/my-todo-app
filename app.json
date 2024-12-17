@@ -1,8 +1,15 @@
 {
   "expo": {
+    "scheme": "myapp",
     "name": "my-todo-app",
     "slug": "my-todo-app",
     "version": "1.0.0",
+    "jsEngine": "hermes",
+    "reactNative": {
+      "experimental": {
+        "bridgeless": false
+      }
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -23,6 +30,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-video"
+    ]
   }
 }
