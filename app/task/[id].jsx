@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, SafeAreaView } from "react-native";
+import { View, Text, TextInput, Pressable, FlatList, SafeAreaView } from "react-native";
 import useStore from "../../store/useStore";
 
 export default function TaskDetails() {
@@ -62,12 +62,12 @@ export default function TaskDetails() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.title}>{task?.name}</Text>
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-1 p-5">
+        <Text className="text-2xl font-bold text-center mb-4">{task?.name}</Text>
 
-        <Text style={styles.label}>Status:</Text>
-        <View style={styles.statusContainer}>
+        <Text className="text-lg mb-2">Status:</Text>
+        <View className="flex-row mb-4">
           {["Do zrobienia", "W trakcie", "Gotowe"].map((item) => (
             <Pressable
               key={item}
@@ -75,60 +75,73 @@ export default function TaskDetails() {
                 setStatus(item);
                 updateTask(id, { status: item });
               }}
-              style={[
-                styles.statusButton,
-                { backgroundColor: item === "Do zrobienia" ? "#ffcccc" :
-                                 item === "W trakcie" ? "#fff4cc" : "#d4edda" },
-                status === item && styles.statusButtonSelected,
-              ]}
+              className={`p-2 mr-2 rounded-lg ${
+                item === "Do zrobienia"
+                  ? "bg-red-100"
+                  : item === "W trakcie"
+                  ? "bg-yellow-100"
+                  : "bg-green-100"
+              } ${status === item ? "border-2 border-purple-600" : "border border-gray-300"}`}
             >
-              <Text style={styles.statusText}>{item}</Text>
+              <Text
+                className={`${
+                  status === item ? "text-purple-600 font-bold" : "text-gray-800"
+                }`}
+              >
+                {item}
+              </Text>
             </Pressable>
           ))}
         </View>
 
-        <Text style={styles.label}>Add a Note:</Text>
+        <Text className="text-lg mb-2">Add a Note:</Text>
         <TextInput
           value={note}
           onChangeText={setNote}
           placeholder="Write your note here..."
-          style={styles.input}
+          className="border border-gray-300 rounded-lg p-2 mb-4"
         />
-        <Pressable onPress={addNote} style={styles.addButton}>
-          <Text style={styles.addText}>Add</Text>
+        <Pressable onPress={addNote} className="bg-gray-300 p-3 rounded-lg mb-4">
+          <Text className="text-gray-800 font-bold text-center">Add</Text>
         </Pressable>
 
         <FlatList
           data={notes}
           keyExtractor={(_, index) => index.toString()}
           renderItem={({ item, index }) => (
-            <View style={styles.noteContainer}>
+            <View className="bg-yellow-50 p-3 rounded-lg mb-3">
               {isEditing === index ? (
                 <>
                   <TextInput
                     value={editedNote}
                     onChangeText={setEditedNote}
-                    style={styles.editInput}
+                    className="border border-gray-300 rounded-lg p-2 mb-2"
                   />
-                  <View style={styles.editButtons}>
-                    <Pressable onPress={saveEditedNote} style={styles.saveButton}>
-                      <Text style={styles.saveText}>Save</Text>
+                  <View className="flex-row justify-end">
+                    <Pressable onPress={saveEditedNote} className="bg-green-200 p-2 rounded-lg mr-2">
+                      <Text className="text-green-800 font-bold">Save</Text>
                     </Pressable>
-                    <Pressable onPress={() => setIsEditing(null)} style={styles.cancelButton}>
-                      <Text style={styles.cancelText}>Cancel</Text>
+                    <Pressable onPress={() => setIsEditing(null)} className="bg-gray-300 p-2 rounded-lg">
+                      <Text className="text-gray-800 font-bold">Cancel</Text>
                     </Pressable>
                   </View>
                 </>
               ) : (
                 <>
-                  <Text style={styles.noteDate}>{item.date}</Text>
-                  <Text style={styles.noteText}>{item.text}</Text>
-                  <View style={styles.noteActions}>
-                    <Pressable onPress={() => startEditing(index)} style={styles.editButton}>
-                      <Text style={styles.editText}>Edit</Text>
+                  <Text className="text-sm text-gray-500 mb-1">{item.date}</Text>
+                  <Text className="text-gray-800 mb-2">{item.text}</Text>
+                  <View className="flex-row justify-end">
+                    <Pressable
+                      onPress={() => startEditing(index)}
+                      className="bg-blue-100 p-2 rounded-lg mr-2"
+                    >
+                      <Text className="text-blue-800 font-bold">Edit</Text>
                     </Pressable>
-                    <Pressable onPress={() => deleteNote(index)} style={styles.deleteButton}>
-                      <Text style={styles.deleteText}>Delete</Text>
+                    <Pressable
+                      onPress={() => deleteNote(index)}
+                      className="bg-red-200 p-2 rounded-lg"
+                    >
+                      <Text className="text-red-500 font-bold">Delete</Text>
                     </Pressable>
                   </View>
                 </>
@@ -137,43 +150,13 @@ export default function TaskDetails() {
           )}
         />
 
-        <View style={styles.backButtonContainer}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backText}>← Back</Text>
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={() => router.back()}
+          className="bg-gray-300 p-3 rounded-lg mt-4"
+        >
+          <Text className="text-gray-800 font-bold text-center">← Back</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#fff" },
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 10 },
-  label: { fontSize: 16, marginTop: 10 },
-  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 5, padding: 10, marginTop: 5 },
-  addButton: { backgroundColor: "#ccc", padding: 10, borderRadius: 5, alignItems: "center", marginTop: 10 },
-  addText: { color: "#333", fontSize: 16 },
-  noteContainer: { backgroundColor: "#fff8e1", padding: 10, borderRadius: 5, marginTop: 5 },
-  noteDate: { fontSize: 12, color: "#888" },
-  noteText: { fontSize: 16, color: "#333", marginBottom: 5 },
-  noteActions: { flexDirection: "row", justifyContent: "flex-end" },
-  editButton: { marginRight: 10, backgroundColor: "#add8e6", padding: 5, borderRadius: 5 },
-  editText: { color: "#333" },
-  deleteButton: { backgroundColor: "#ff4d4d", padding: 5, borderRadius: 5 },
-  deleteText: { color: "#fff" },
-  editInput: { borderWidth: 1, borderColor: "#ddd", padding: 10, borderRadius: 5, marginTop: 5 },
-  editButtons: { flexDirection: "row", justifyContent: "flex-end", marginTop: 5 },
-  saveButton: { backgroundColor: "#a0e6a0", padding: 5, borderRadius: 5, marginRight: 5 },
-  saveText: { color: "#fff" },
-  cancelButton: { backgroundColor: "#ddd", padding: 5, borderRadius: 5 },
-  cancelText: { color: "#333" },
-  backButtonContainer: { position: "absolute", bottom: 30, left: 20, right: 20 },
-  backButton: { backgroundColor: "#ddd", padding: 10, borderRadius: 5, alignItems: "center" },
-  backText: { fontSize: 16, color: "#333" },
-  statusContainer: { flexDirection: "row", marginTop: 10 },
-  statusButton: { padding: 10, marginRight: 10, borderRadius: 5, borderWidth: 1, borderColor: "#ddd" },
-  statusButtonSelected: { borderWidth: 2, borderColor: "#6a0dad" },
-  statusText: { color: "#333" },
-});

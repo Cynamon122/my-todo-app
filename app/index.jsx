@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, Text, FlatList, Pressable, TextInput, Alert, StyleSheet } from "react-native";
+import { View, Text, FlatList, Pressable, TextInput, Alert } from "react-native";
 import useStore from "../store/useStore";
 import { useRouter } from "expo-router";
 
@@ -28,18 +28,18 @@ export default function Home() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>To-Do List</Text>
+    <View className="flex-1 p-4 bg-white">
+      <Text className="text-2xl font-bold text-center mb-4">To-Do List</Text>
 
-      <View style={styles.row}>
+      <View className="flex-row mb-4">
         <TextInput
           value={task}
           onChangeText={setTask}
           placeholder="Add a new task..."
-          style={styles.input}
+          className="flex-1 border border-gray-300 rounded-lg p-2 mr-2"
         />
-        <Pressable onPress={handleAddTask} style={styles.addButton}>
-          <Text style={styles.addButtonText}>Add</Text>
+        <Pressable onPress={handleAddTask} className="bg-gray-300 px-4 py-2 rounded-lg">
+          <Text className="font-bold text-gray-800">Add</Text>
         </Pressable>
       </View>
 
@@ -49,109 +49,33 @@ export default function Home() {
         renderItem={({ item }) => (
           <Pressable
             onPress={() => router.push(`/task/${item.id}`)}
-            style={[styles.taskItem, getBackgroundColor(item.status)]}
+            className={`flex-row justify-between items-center p-4 rounded-lg mb-2 border ${getBackgroundColorClass(item.status)}`}
           >
-            <Text style={styles.taskText}>{item.name}</Text>
-            <Pressable onPress={() => deleteTask(item.id)} style={styles.deleteButton}>
-              <Text style={styles.deleteButtonText}>Delete</Text>
+            <Text className="text-lg text-gray-800">{item.name}</Text>
+            <Pressable onPress={() => deleteTask(item.id)} className="bg-red-200 px-2 py-1 rounded-lg">
+              <Text className="text-red-500 font-bold">Delete</Text>
             </Pressable>
           </Pressable>
         )}
-        ListEmptyComponent={<Text style={styles.emptyList}>No tasks yet!</Text>}
+        ListEmptyComponent={<Text className="text-center text-gray-500">No tasks yet!</Text>}
       />
 
-      <Pressable onPress={confirmClearTasks} style={styles.clearButton}>
-        <Text style={styles.clearButtonText}>Clear All Tasks</Text>
+      <Pressable onPress={confirmClearTasks} className="mt-4 bg-red-200 py-3 rounded-lg">
+        <Text className="text-center text-red-500 font-bold">Clear All Tasks</Text>
       </Pressable>
     </View>
   );
 }
 
-const getBackgroundColor = (status) => {
+const getBackgroundColorClass = (status) => {
   switch (status) {
     case "Do zrobienia":
-      return { backgroundColor: "#ffe6e6" }; // Jasnoczerwone tło
+      return "bg-red-100"; // Jasnoczerwone tło
     case "W trakcie":
-      return { backgroundColor: "#fff4cc" }; // Jasnożółte tło
+      return "bg-yellow-100"; // Jasnożółte tło
     case "Gotowe":
-      return { backgroundColor: "#ccffcc" }; // Jasnozielone tło
+      return "bg-green-100"; // Jasnozielone tło
     default:
-      return { backgroundColor: "#f9f9f9" };
+      return "bg-gray-100";
   }
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#fff",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: "row",
-    marginBottom: 16,
-  },
-  input: {
-    flex: 1,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 8,
-    marginRight: 8,
-  },
-  addButton: {
-    backgroundColor: "#ddd",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    fontWeight: "bold",
-    color: "#333",
-  },
-  taskItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  taskText: {
-    fontSize: 16,
-    color: "#333",
-  },
-  deleteButton: {
-    backgroundColor: "#ffcccc",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  deleteButtonText: {
-    color: "#ff0000",
-    fontWeight: "bold",
-  },
-  emptyList: {
-    textAlign: "center",
-    color: "#aaa",
-  },
-  clearButton: {
-    marginTop: 16,
-    backgroundColor: "#ffcccc",
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  clearButtonText: {
-    textAlign: "center",
-    color: "#ff0000",
-    fontWeight: "bold",
-  },
-});
-
