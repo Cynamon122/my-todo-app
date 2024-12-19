@@ -1,59 +1,65 @@
 import { create } from "zustand";
-import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const TASKS_KEY = "tasks";
 
 const useStore = create((set, get) => ({
-  task: "",
   tasks: [],
 
-  // Aktualizacja pola tekstowego
-  setTask: (newTask) => set({ task: newTask }),
-
-  // Dodawanie nowego zadania
+  // Dodanie nowego zadania
   addTask: async () => {
-    const { task, tasks } = get();
+    const { tasks, task } = get();
     if (!task.trim()) return;
 
-    const updatedTasks = [...tasks, { id: Date.now().toString(), name: task }];
+    const newTask = {
+      id: Date.now().toString(),
+      name: task,
+      notes: [],
+      status: "Do zrobienia",
+    };
 
-    try {
-      await SecureStore.setItemAsync("tasks", JSON.stringify(updatedTasks));
-      set({ tasks: updatedTasks, task: "" });
-    } catch (error) {
-      console.error("Error saving tasks:", error);
-    }
+    const updatedTasks = [...tasks, newTask];
+    await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(updatedTasks));
+    set({ tasks: updatedTasks, task: "" });
   },
 
-  // Usuwanie zadania
-  deleteTask: async (taskId) => {
-    const updatedTasks = get().tasks.filter((task) => task.id !== taskId);
+  // Aktualizacja zadania (dodanie notatek, zmiana statusu)
+  updateTask: async (id, updates) => {
+    const { tasks } = get();
+    const updatedTasks = tasks.map((task) =>
+      task.id === id ? { ...task, ...updates } : task
+    );
 
-    try {
-      await SecureStore.setItemAsync("tasks", JSON.stringify(updatedTasks));
-      set({ tasks: updatedTasks });
-    } catch (error) {
-      console.error("Error deleting task:", error);
-    }
+    await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(updatedTasks));
+    set({ tasks: updatedTasks });
   },
 
-  // Odczyt zadań przy starcie aplikacji
+  // Usuwanie zadań
+  deleteTask: async (id) => {
+    const { tasks } = get();
+    const updatedTasks = tasks.filter((task) => task.id !== id);
+    await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(updatedTasks));
+    set({ tasks: updatedTasks });
+  },
+
+  // Wczytywanie zadań z AsyncStorage
   loadTasks: async () => {
     try {
-      const savedTasks = await SecureStore.getItemAsync("tasks");
-      if (savedTasks) set({ tasks: JSON.parse(savedTasks) });
-    } catch (error) {
-      console.error("Error loading tasks:", error);
+      const storedTasks = await AsyncStorage.getItem(TASKS_KEY);
+      set({ tasks: storedTasks ? JSON.parse(storedTasks) : [] });
+    } catch (e) {
+      console.error("Error loading tasks:", e);
     }
   },
 
-  // Wyczyszczenie zadań
   clearTasks: async () => {
-    try {
-      await SecureStore.deleteItemAsync("tasks");
-      set({ tasks: [] });
-    } catch (error) {
-      console.error("Error clearing tasks:", error);
-    }
+    await AsyncStorage.removeItem(TASKS_KEY);
+    set({ tasks: [] });
   },
+
+  task: "",
+  setTask: (newTask) => set({ task: newTask }),
 }));
 
 export default useStore;
+

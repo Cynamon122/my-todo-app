@@ -1,82 +1,157 @@
 import React, { useEffect } from "react";
-import { View, TextInput, FlatList, Pressable, Text, StyleSheet } from "react-native";
+import { View, Text, FlatList, Pressable, TextInput, Alert, StyleSheet } from "react-native";
 import useStore from "../store/useStore";
-import TaskItem from "../components/TaskItem";
+import { useRouter } from "expo-router";
 
 export default function Home() {
-  const { task, tasks, setTask, addTask, deleteTask, loadTasks, clearTasks } = useStore();
+  const router = useRouter();
+  const { tasks, loadTasks, deleteTask, clearTasks, addTask, setTask, task } = useStore();
 
-  // Wczytanie zadań przy starcie aplikacji
   useEffect(() => {
-    loadTasks();
+    loadTasks(); // Ładowanie zadań przy starcie aplikacji
   }, []);
+
+  const confirmClearTasks = () => {
+    Alert.alert("Confirm", "Are you sure you want to delete all tasks?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Yes", onPress: () => clearTasks() },
+    ]);
+  };
+
+  const handleAddTask = () => {
+    if (task.trim()) {
+      addTask();
+      setTask("");
+    } else {
+      Alert.alert("Error", "Task name cannot be empty.");
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>To-Do List</Text>
 
-      <TextInput
-        placeholder="Add a task..."
-        value={task}
-        onChangeText={setTask}
-        style={styles.input}
-      />
-
-      <Pressable onPress={addTask} style={styles.button}>
-        <Text style={styles.buttonText}>Add Task</Text>
-      </Pressable>
+      <View style={styles.row}>
+        <TextInput
+          value={task}
+          onChangeText={setTask}
+          placeholder="Add a new task..."
+          style={styles.input}
+        />
+        <Pressable onPress={handleAddTask} style={styles.addButton}>
+          <Text style={styles.addButtonText}>Add</Text>
+        </Pressable>
+      </View>
 
       <FlatList
         data={tasks}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <TaskItem task={item} onDelete={deleteTask} />}
-        style={styles.list}
+        renderItem={({ item }) => (
+          <Pressable
+            onPress={() => router.push(`/task/${item.id}`)}
+            style={[styles.taskItem, getBackgroundColor(item.status)]}
+          >
+            <Text style={styles.taskText}>{item.name}</Text>
+            <Pressable onPress={() => deleteTask(item.id)} style={styles.deleteButton}>
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </Pressable>
+          </Pressable>
+        )}
+        ListEmptyComponent={<Text style={styles.emptyList}>No tasks yet!</Text>}
       />
 
-      {/* Opcjonalny przycisk do wyczyszczenia SecureStore */}
-      <Pressable onPress={clearTasks} style={styles.clearButton}>
-        <Text style={styles.buttonText}>Clear Tasks</Text>
+      <Pressable onPress={confirmClearTasks} style={styles.clearButton}>
+        <Text style={styles.clearButtonText}>Clear All Tasks</Text>
       </Pressable>
     </View>
   );
 }
 
+const getBackgroundColor = (status) => {
+  switch (status) {
+    case "Do zrobienia":
+      return { backgroundColor: "#ffe6e6" }; // Jasnoczerwone tło
+    case "W trakcie":
+      return { backgroundColor: "#fff4cc" }; // Jasnożółte tło
+    case "Gotowe":
+      return { backgroundColor: "#ccffcc" }; // Jasnozielone tło
+    default:
+      return { backgroundColor: "#f9f9f9" };
+  }
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 16,
     backgroundColor: "#fff",
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: "row",
+    marginBottom: 16,
   },
   input: {
-    borderBottomWidth: 1,
-    padding: 10,
-    marginBottom: 10,
-    fontSize: 16,
+    flex: 1,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+    marginRight: 8,
   },
-  button: {
-    backgroundColor: "#6a0dad",
-    padding: 10,
-    borderRadius: 5,
+  addButton: {
+    backgroundColor: "#ddd",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    fontWeight: "bold",
+    color: "#333",
+  },
+  taskItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  taskText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  deleteButton: {
+    backgroundColor: "#ffcccc",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  deleteButtonText: {
+    color: "#ff0000",
+    fontWeight: "bold",
+  },
+  emptyList: {
+    textAlign: "center",
+    color: "#aaa",
   },
   clearButton: {
-    backgroundColor: "#ff4444",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
+    marginTop: 16,
+    backgroundColor: "#ffcccc",
+    paddingVertical: 12,
+    borderRadius: 8,
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-  },
-  list: {
-    marginTop: 10,
+  clearButtonText: {
+    textAlign: "center",
+    color: "#ff0000",
+    fontWeight: "bold",
   },
 });
+
