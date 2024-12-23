@@ -1,15 +1,29 @@
-import React, { useEffect } from "react";
-import { View, Text, FlatList, Pressable, TextInput, Alert } from "react-native";
+import React, { useEffect, useState } from "react";
+import { SafeAreaView, View, Text, FlatList, Pressable, TextInput, Alert } from "react-native";
 import useStore from "../store/useStore";
 import { useRouter } from "expo-router";
+import "../global.css";
 
 export default function Home() {
   const router = useRouter();
   const { tasks, loadTasks, deleteTask, clearTasks, addTask, setTask, task } = useStore();
+  const [sortedTasks, setSortedTasks] = useState([]);
 
   useEffect(() => {
     loadTasks(); // Ładowanie zadań przy starcie aplikacji
   }, []);
+
+  useEffect(() => {
+    sortTasks(); // Sortuj zadania za każdym razem, gdy lista zadań się zmieni
+  }, [tasks]);
+
+  const sortTasks = () => {
+    const sorted = [...tasks].sort((a, b) => {
+      const order = ["Do zrobienia", "W trakcie", "Gotowe"];
+      return order.indexOf(a.status) - order.indexOf(b.status);
+    });
+    setSortedTasks(sorted);
+  };
 
   const confirmClearTasks = () => {
     Alert.alert("Confirm", "Are you sure you want to delete all tasks?", [
@@ -27,55 +41,60 @@ export default function Home() {
     }
   };
 
-  return (
-    <View className="flex-1 p-4 bg-white">
-      <Text className="text-2xl font-bold text-center mb-4">To-Do List</Text>
+  const getBackgroundColorClass = (status) => {
+    switch (status) {
+      case "Do zrobienia":
+        return "bg-red-100";
+      case "W trakcie":
+        return "bg-yellow-100";
+      case "Gotowe":
+        return "bg-green-100";
+      default:
+        return "bg-gray-100";
+    }
+  };
 
-      <View className="flex-row mb-4">
-        <TextInput
-          value={task}
-          onChangeText={setTask}
-          placeholder="Add a new task..."
-          className="flex-1 border border-gray-300 rounded-lg p-2 mr-2"
+  return (
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-1 p-4 bg-white">
+        <Text className="text-2xl font-bold text-center mb-4">To-Do List</Text>
+
+        <View className="flex-row mb-4">
+          <TextInput
+            value={task}
+            onChangeText={setTask}
+            placeholder="Add a new task..."
+            className="flex-1 border border-gray-300 rounded-lg p-2 mr-2"
+          />
+          <Pressable onPress={handleAddTask} className="bg-gray-300 py-2 px-4 rounded-lg">
+            <Text className="font-bold text-gray-800">Add</Text>
+          </Pressable>
+        </View>
+
+        <FlatList
+          data={sortedTasks}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => router.push(`/task/${item.id}`)}
+              className={`flex-row justify-between items-center p-4 rounded-lg mb-2 border border-gray-300 shadow ${getBackgroundColorClass(item.status)}`}
+            >
+              <View className="flex-1">
+                <Text className="text-lg text-gray-800">{item.name}</Text>
+                <Text className="text-sm text-gray-500">Status: {item.status}</Text>
+              </View>
+              <Pressable onPress={() => deleteTask(item.id)} className="bg-red-200 py-1 px-2 rounded-lg">
+                <Text className="text-black">Delete</Text>
+              </Pressable>
+            </Pressable>
+          )}
+          ListEmptyComponent={<Text className="text-center text-gray-400">No tasks yet!</Text>}
         />
-        <Pressable onPress={handleAddTask} className="bg-gray-300 px-4 py-2 rounded-lg">
-          <Text className="font-bold text-gray-800">Add</Text>
+
+        <Pressable onPress={confirmClearTasks} className="mt-4 bg-red-200 py-3 rounded-lg">
+          <Text className="text-center text-red-500 font-bold">Clear All Tasks</Text>
         </Pressable>
       </View>
-
-      <FlatList
-        data={tasks}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => router.push(`/task/${item.id}`)}
-            className={`flex-row justify-between items-center p-4 rounded-lg mb-2 border ${getBackgroundColorClass(item.status)}`}
-          >
-            <Text className="text-lg text-gray-800">{item.name}</Text>
-            <Pressable onPress={() => deleteTask(item.id)} className="bg-red-200 px-2 py-1 rounded-lg">
-              <Text className="text-red-500 font-bold">Delete</Text>
-            </Pressable>
-          </Pressable>
-        )}
-        ListEmptyComponent={<Text className="text-center text-gray-500">No tasks yet!</Text>}
-      />
-
-      <Pressable onPress={confirmClearTasks} className="mt-4 bg-red-200 py-3 rounded-lg">
-        <Text className="text-center text-red-500 font-bold">Clear All Tasks</Text>
-      </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
-
-const getBackgroundColorClass = (status) => {
-  switch (status) {
-    case "Do zrobienia":
-      return "bg-red-100"; // Jasnoczerwone tło
-    case "W trakcie":
-      return "bg-yellow-100"; // Jasnożółte tło
-    case "Gotowe":
-      return "bg-green-100"; // Jasnozielone tło
-    default:
-      return "bg-gray-100";
-  }
-};
