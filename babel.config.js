@@ -7,7 +7,6 @@ module.exports = function (api) {
       ],
       plugins: [
         "react-native-reanimated/plugin"
-        // jeśli dodałeś cokolwiek innego, sprawdź czy jest poprawne
       ]
     };
   };

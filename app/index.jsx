@@ -1,29 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { SafeAreaView, View, Text, FlatList, Pressable, TextInput, Alert } from "react-native";
+import Animated, { Layout, SlideInLeft, SlideInRight, SlideOutLeft, SlideOutRight } from "react-native-reanimated";
 import useStore from "../store/useStore";
 import { useRouter } from "expo-router";
-import "../global.css";
 
 export default function Home() {
   const router = useRouter();
   const { tasks, loadTasks, deleteTask, clearTasks, addTask, setTask, task } = useStore();
-  const [sortedTasks, setSortedTasks] = useState([]);
 
   useEffect(() => {
     loadTasks(); // Ładowanie zadań przy starcie aplikacji
   }, []);
-
-  useEffect(() => {
-    sortTasks(); // Sortuj zadania za każdym razem, gdy lista zadań się zmieni
-  }, [tasks]);
-
-  const sortTasks = () => {
-    const sorted = [...tasks].sort((a, b) => {
-      const order = ["Do zrobienia", "W trakcie", "Gotowe"];
-      return order.indexOf(a.status) - order.indexOf(b.status);
-    });
-    setSortedTasks(sorted);
-  };
 
   const confirmClearTasks = () => {
     Alert.alert("Confirm", "Are you sure you want to delete all tasks?", [
@@ -72,21 +59,23 @@ export default function Home() {
         </View>
 
         <FlatList
-          data={sortedTasks}
+          data={tasks}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <Pressable
-              onPress={() => router.push(`/task/${item.id}`)}
+            <Animated.View
+              entering={SlideInRight.springify()}
+              exiting={SlideOutRight.springify()}
+              layout={Layout.springify()}
               className={`flex-row justify-between items-center p-4 rounded-lg mb-2 border border-gray-300 shadow ${getBackgroundColorClass(item.status)}`}
             >
-              <View className="flex-1">
+              <Pressable onPress={() => router.push(`/task/${item.id}`)} className="flex-1">
                 <Text className="text-lg text-gray-800">{item.name}</Text>
                 <Text className="text-sm text-gray-500">Status: {item.status}</Text>
-              </View>
+              </Pressable>
               <Pressable onPress={() => deleteTask(item.id)} className="bg-red-200 py-1 px-2 rounded-lg">
                 <Text className="text-black">Delete</Text>
               </Pressable>
-            </Pressable>
+            </Animated.View>
           )}
           ListEmptyComponent={<Text className="text-center text-gray-400">No tasks yet!</Text>}
         />
