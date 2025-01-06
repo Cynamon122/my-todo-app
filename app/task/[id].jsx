@@ -237,7 +237,7 @@ export default function TaskDetails() {
           />
 
           {/* Wideo */}
-          {videoUri ? (
+          {videoUri && (
             <View className="mt-4">
               <Text className="text-lg font-bold">Recorded Video:</Text>
               <Video
@@ -253,8 +253,6 @@ export default function TaskDetails() {
                 resizeMode="contain"
               />
             </View>
-          ) : (
-            <Text className="text-center text-gray-400 mt-4">No video recorded yet!</Text>
           )}
 
           {/* Powrót */}
