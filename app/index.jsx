@@ -79,7 +79,6 @@ export default function Home() {
           )}
           ListEmptyComponent={<Text className="text-center text-gray-400">No tasks yet!</Text>}
         />
-
         <Pressable onPress={confirmClearTasks} className="mt-4 bg-red-200 py-3 rounded-lg">
           <Text className="text-center text-red-500 font-bold">Clear All Tasks</Text>
         </Pressable>

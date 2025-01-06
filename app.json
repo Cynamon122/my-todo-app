@@ -26,13 +26,22 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": ["CAMERA", "RECORD_AUDIO"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-video"
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow my-todo-app to access your camera",
+          "microphonePermission": "Allow my-todo-app to access your microphone"
+        }
+      ],
+      "expo-video",
+      "expo-router"
     ]
   }
 }

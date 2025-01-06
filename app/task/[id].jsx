@@ -1,25 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Pressable, FlatList, SafeAreaView } from "react-native";
+import { View, Text, TextInput, Pressable, FlatList, SafeAreaView, Alert } from "react-native";
+import { Video } from "expo-av";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   Layout,
-  SlideInRight,
   SlideInLeft,
   SlideOutLeft,
-  SlideOutRight,
 } from "react-native-reanimated";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import useStore from "../../store/useStore";
 import "../../global.css";
 
 export default function TaskDetails() {
-  const { id } = useLocalSearchParams();
-  const { tasks, updateTask } = useStore();
+  const { id } = useLocalSearchParams(); // Pobierz `id` taska
+  const [videoUri, setVideoUri] = useState(null);
+  const { tasks, updateTask } = useStore(); // Pobieranie tasków i funkcji aktualizacji ze store
   const router = useRouter();
 
-  const task = tasks.find((t) => t.id === id);
+  const task = tasks.find((t) => t.id === id); // Znajdź odpowiedni task na podstawie ID
 
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState(task?.notes || []);
@@ -30,9 +31,42 @@ export default function TaskDetails() {
   const scale = useSharedValue(1);
 
   useEffect(() => {
+    if (!id) {
+      Alert.alert("Error", "Task ID is missing!");
+      router.push("/"); // Przekierowanie na stronę główną
+      return;
+    }
+
+    // Załaduj URI wideo z pamięci
+    loadVideoUri(id);
+
+    // Zaktualizuj lokalny stan na podstawie taska
     setNotes(task?.notes || []);
     setStatus(task?.status || "Do zrobienia");
-  }, [task]);
+  }, [id, task]);
+
+  const saveVideoUri = async (taskId, uri) => {
+    try {
+      await AsyncStorage.setItem(`videoUri-${taskId}`, uri);
+      console.log(`Video URI saved for task ${taskId}:`, uri);
+    } catch (error) {
+      console.error("Failed to save video URI:", error);
+    }
+  };
+
+  const loadVideoUri = async (taskId) => {
+    try {
+      const savedUri = await AsyncStorage.getItem(`videoUri-${taskId}`);
+      if (savedUri) {
+        console.log(`Video URI loaded for task ${taskId}:`, savedUri);
+        setVideoUri(savedUri);
+      } else {
+        console.log(`No saved video URI for task ${taskId}`);
+      }
+    } catch (error) {
+      console.error("Failed to load video URI:", error);
+    }
+  };
 
   const getFormattedDate = () => {
     const now = new Date();
@@ -47,8 +81,9 @@ export default function TaskDetails() {
   const addNote = () => {
     if (note.trim()) {
       const newNote = { text: note, date: getFormattedDate() };
-      setNotes((prevNotes) => [...prevNotes, newNote]);
-      updateTask(id, { notes: [...notes, newNote] });
+      const updatedNotes = [...notes, newNote];
+      setNotes(updatedNotes);
+      updateTask(id, { notes: updatedNotes });
       setNote("");
     }
   };
@@ -87,14 +122,14 @@ export default function TaskDetails() {
 
   return (
     <Animated.View
-      entering={SlideInLeft.springify()} // Dodanie animacji przesuwania się przy włączaniu
-      exiting={SlideOutLeft.springify()}
+      entering={SlideInLeft.springify()} // Animacja wejścia
+      exiting={SlideOutLeft.springify()} // Animacja wyjścia
       layout={Layout.springify()}
       className="flex-1"
     >
       <SafeAreaView className="flex-1 bg-white">
         <View className="flex-1 p-5">
-          <Text className="text-2xl font-bold text-center mb-3">{task?.name}</Text>
+          <Text className="text-2xl font-bold text-center mb-3">{task?.name || "Task Details"}</Text>
 
           {/* Status */}
           <Text className="text-base mt-2">Status:</Text>
@@ -107,7 +142,7 @@ export default function TaskDetails() {
                   animateScale();
                 }}
                 className={`px-3 py-2 mr-2 rounded border ${
-                  status === "Do zrobienia" ? "border-2 border-grey-300" : "border-gray-300"
+                  status === "Do zrobienia" ? "border-2 border-gray-400" : "border-gray-300"
                 } bg-red-200`}
               >
                 <Text className="text-gray-800">Do zrobienia</Text>
@@ -122,7 +157,7 @@ export default function TaskDetails() {
                   animateScale();
                 }}
                 className={`px-3 py-2 mr-2 rounded border ${
-                  status === "W trakcie" ? "border-2 border-grey-300" : "border-gray-300"
+                  status === "W trakcie" ? "border-2 border-gray-400" : "border-gray-300"
                 } bg-yellow-200`}
               >
                 <Text className="text-gray-800">W trakcie</Text>
@@ -137,7 +172,7 @@ export default function TaskDetails() {
                   animateScale();
                 }}
                 className={`px-3 py-2 mr-2 rounded border ${
-                  status === "Gotowe" ? "border-2 border-grey-300" : "border-gray-300"
+                  status === "Gotowe" ? "border-2 border-gray-400" : "border-gray-300"
                 } bg-green-200`}
               >
                 <Text className="text-gray-800">Gotowe</Text>
@@ -158,6 +193,16 @@ export default function TaskDetails() {
             className="bg-gray-300 py-2 px-3 rounded items-center mt-3"
           >
             <Text className="text-gray-800 text-base">Add</Text>
+          </Pressable>
+
+          {/* Otwieranie kamery */}
+          <Pressable
+            onPress={() => {
+              router.push({ pathname: "/cameraScreen", params: { id } });
+            }}
+            className="bg-blue-200 py-2 px-3 rounded items-center mt-3"
+          >
+            <Text className="text-center text-blue-600">Open Camera</Text>
           </Pressable>
 
           {/* Lista notatek */}
@@ -217,10 +262,34 @@ export default function TaskDetails() {
             ListEmptyComponent={<Text className="text-center text-gray-400 mt-4">No notes yet!</Text>}
           />
 
+          {/* Wideo */}
+          {videoUri ? (
+            <View className="mt-4">
+              <Text className="text-lg font-bold">Recorded Video:</Text>
+              <Video
+                source={{ uri: videoUri }}
+                style={{
+                  height: 200,
+                  borderRadius: 8,
+                  marginTop: 8,
+                  marginBottom: 70,
+                  width: "100%",
+                }}
+                useNativeControls
+                resizeMode="contain"
+                shouldPlay={false}
+                onLoad={() => console.log("Video loaded successfully")}
+                onError={(e) => console.error("Video error:", e)}
+              />
+            </View>
+          ) : (
+            <Text className="text-center text-gray-400 mt-4">No video recorded yet!</Text>
+          )}
+
           {/* Przycisk powrotu */}
           <View className="absolute bottom-8 left-5 right-5">
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => router.push("/")}
               className="bg-gray-300 py-3 rounded items-center"
             >
               <Text className="text-gray-800 text-base">← Back</Text>
