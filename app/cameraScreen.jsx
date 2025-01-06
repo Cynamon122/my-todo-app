@@ -1,24 +1,42 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+  Alert,
+} from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import Slider from "@react-native-community/slider";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function CameraScreen() {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [facing, setFacing] = useState("back");
-  const [isRecording, setIsRecording] = useState(false);
-  const [videoUri, setVideoUri] = useState(null);
-  const cameraRef = useRef(null);
-  const router = useRouter();
-  const { id } = useLocalSearchParams();
+  // ---------- STANY ----------
+  const [permission, requestPermission] = useCameraPermissions(); // Uprawnienia do kamery
+  const [facing, setFacing] = useState("back"); // Kierunek kamery
+  const [torchOn, setTorchOn] = useState(false); // Stan latarki
+  const [zoom, setZoom] = useState(0); // Zoom kamery
+  const [sliderVisible, setSliderVisible] = useState(false); // Widoczność slidera
+  const sliderAnim = useRef(new Animated.Value(0)).current; // Animacja slidera
+  const [isRecording, setIsRecording] = useState(false); // Nagrywanie w toku
+  const [videoUri, setVideoUri] = useState(null); // URI wideo
 
+  const cameraRef = useRef(null); // Referencja do kamery
+  const router = useRouter(); // Nawigacja
+  const { id } = useLocalSearchParams(); // Pobieranie parametrów z URL
+
+  // ---------- UŻYCIE EFEKTÓW ----------
   useEffect(() => {
-    if (id) {
-      loadVideoUri();
-    }
+    if (id) loadVideoUri();
   }, [id]);
 
+  // ---------- FUNKCJE ----------
+
+  // Zapisz URI wideo do pamięci
   const saveVideoUri = async (uri) => {
     try {
       await AsyncStorage.setItem(`videoUri-${id}`, uri);
@@ -28,6 +46,7 @@ export default function CameraScreen() {
     }
   };
 
+  // Wczytaj URI wideo z pamięci
   const loadVideoUri = async () => {
     try {
       const savedUri = await AsyncStorage.getItem(`videoUri-${id}`);
@@ -40,38 +59,35 @@ export default function CameraScreen() {
     }
   };
 
-  if (!permission) {
-    return <View style={styles.container} />;
-  }
+  // Przełącz kierunek kamery (przód/tył)
+  const toggleCameraFacing = () => setFacing((prev) => (prev === "back" ? "front" : "back"));
 
-  if (!permission.granted) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.text}>We need your permission to access the camera</Text>
-        <TouchableOpacity style={styles.button} onPress={requestPermission}>
-          <Text style={styles.buttonText}>Grant Permission</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // Przełącz stan latarki
+  const toggleTorch = () => setTorchOn((prev) => !prev);
 
-  const toggleCameraFacing = () => {
-    setFacing((prev) => (prev === "back" ? "front" : "back"));
-    console.log("Camera facing toggled to:", facing === "back" ? "front" : "back");
+  // Pokaż lub ukryj slider zoomu z animacją
+  const toggleSlider = () => {
+    setSliderVisible((prev) => !prev);
+    Animated.timing(sliderAnim, {
+      toValue: sliderVisible ? 0 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
   };
 
+  // Rozpocznij nagrywanie wideo
   const startRecording = async () => {
     if (cameraRef.current) {
       try {
         setIsRecording(true);
-        console.log("Recording started...");
         const video = await cameraRef.current.recordAsync();
-        console.log("Video URI captured:", video.uri);
-
         if (video.uri) {
           setVideoUri(video.uri);
-          saveVideoUri(video.uri); // Save video URI
-          router.push({ pathname: "/task/[id]", params: { id, videoUri: video.uri } });
+          saveVideoUri(video.uri);
+          router.push({
+            pathname: "/task/[id]",
+            params: { id, videoUri: video.uri },
+          });
         } else {
           Alert.alert("Error", "Failed to retrieve video URI.");
         }
@@ -84,12 +100,12 @@ export default function CameraScreen() {
     }
   };
 
+  // Zatrzymaj nagrywanie
   const stopRecording = () => {
     if (cameraRef.current) {
       try {
         cameraRef.current.stopRecording();
         setIsRecording(false);
-        console.log("Recording stopped.");
       } catch (error) {
         console.error("Error stopping recording:", error);
         Alert.alert("Error", "Failed to stop recording.");
@@ -97,70 +113,146 @@ export default function CameraScreen() {
     }
   };
 
+  // ---------- RENDEROWANIE ----------
+
+  if (!permission) return <View style={styles.container} />;
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.text}>We need your permission to access the camera</Text>
+        <TouchableOpacity style={styles.button} onPress={requestPermission}>
+          <Text style={styles.buttonText}>Grant Permission</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      
       <CameraView
+        ref={cameraRef}
+        zoom={zoom}
         style={styles.camera}
         facing={facing}
-        ref={cameraRef}
         mode="video"
+        enableTorch={torchOn}
       />
-      <View style={styles.controls}>
-        <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-          <Text style={styles.buttonText}>Flip Camera</Text>
-        </TouchableOpacity>
-        {isRecording ? (
-          <TouchableOpacity style={[styles.button, styles.stopButton]} onPress={stopRecording}>
-            <Text style={styles.buttonText}>Stop Recording</Text>
+      <LinearGradient
+        colors={["transparent", "rgba(0, 0, 0, 0.7)"]}
+        style={styles.overlay}
+      >
+        {/* Ikona Zoom */}
+        <View style={styles.zoomControl}>
+          <TouchableOpacity style={styles.iconButton} onPress={toggleSlider}>
+            <Ionicons name="search-outline" size={32} color="#fff" />
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.button} onPress={startRecording}>
-            <Text style={styles.buttonText}>Start Recording</Text>
+        </View>
+
+        {/* Slider Zoom z animacją */}
+        <Animated.View
+          style={[
+            styles.zoomContainer,
+            {
+              opacity: sliderAnim,
+              transform: [
+                {
+                  translateY: sliderAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-50, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Text style={styles.zoomLabel}>Zoom: {zoom.toFixed(2)}</Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={1}
+            step={0.01}
+            value={zoom}
+            onValueChange={(val) => setZoom(val)}
+            minimumTrackTintColor="#1e90ff"
+            maximumTrackTintColor="#fff"
+            thumbTintColor="#1e90ff"
+          />
+        </Animated.View>
+
+        {/* Kontrolki nagrywania, latarki i zmiany kamery */}
+        <View style={styles.controls}>
+          <TouchableOpacity style={styles.iconButton} onPress={toggleCameraFacing}>
+            <Ionicons name="camera-reverse-outline" size={32} color="#fff" />
           </TouchableOpacity>
-        )}
-      </View>
+          <TouchableOpacity style={styles.iconButton} onPress={toggleTorch}>
+            <Ionicons name={torchOn ? "flashlight" : "flashlight-outline"} size={32} color="#fff" />
+          </TouchableOpacity>
+          {isRecording ? (
+            <TouchableOpacity style={styles.iconButton} onPress={stopRecording}>
+              <Ionicons name="stop-circle-outline" size={40} color="#ff4040" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.iconButton} onPress={startRecording}>
+              <Ionicons name="radio-button-on-outline" size={40} color="#ff4040" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </LinearGradient>
     </View>
   );
 }
 
-
+// ---------- STYLE ----------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#000",
   },
   camera: {
     flex: 1,
     width: "100%",
   },
+  overlay: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    justifyContent: "flex-end",
+  },
+  zoomControl: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+  },
+  zoomContainer: {
+    position: "absolute",
+    bottom: 100,
+    width: "100%",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  slider: {
+    width: "80%",
+    height: 40,
+  },
+  zoomLabel: {
+    color: "#fff",
+    marginBottom: 8,
+    fontSize: 16,
+  },
   controls: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-evenly",
     alignItems: "center",
-    width: "100%",
+    padding: 20,
+  },
+  iconButton: {
     padding: 10,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-  },
-  button: {
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: "#1e90ff",
-    alignItems: "center",
-  },
-  stopButton: {
-    backgroundColor: "#ff4d4d",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    borderRadius: 50,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
   text: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     textAlign: "center",
     marginBottom: 10,
   },

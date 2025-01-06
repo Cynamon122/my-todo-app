@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Pressable, FlatList, SafeAreaView, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  FlatList,
+  SafeAreaView,
+  Alert,
+} from "react-native";
 import { Video } from "expo-av";
 import Animated, {
   useSharedValue,
@@ -15,36 +23,36 @@ import useStore from "../../store/useStore";
 import "../../global.css";
 
 export default function TaskDetails() {
-  const { id } = useLocalSearchParams(); // Pobierz `id` taska
-  const [videoUri, setVideoUri] = useState(null);
+  // ---------- STANY ----------
+  const { id } = useLocalSearchParams(); // Pobierz ID taska z parametrów URL
   const { tasks, updateTask } = useStore(); // Pobieranie tasków i funkcji aktualizacji ze store
-  const router = useRouter();
+  const router = useRouter(); // Nawigacja
 
   const task = tasks.find((t) => t.id === id); // Znajdź odpowiedni task na podstawie ID
+  const [videoUri, setVideoUri] = useState(null); // URI wideo
+  const [note, setNote] = useState(""); // Nowa notatka
+  const [notes, setNotes] = useState(task?.notes || []); // Lista notatek
+  const [status, setStatus] = useState(task?.status || "Do zrobienia"); // Status zadania
+  const [isEditing, setIsEditing] = useState(null); // Edytowanie notatki
+  const [editedNote, setEditedNote] = useState(""); // Tekst edytowanej notatki
 
-  const [note, setNote] = useState("");
-  const [notes, setNotes] = useState(task?.notes || []);
-  const [status, setStatus] = useState(task?.status || "Do zrobienia");
-  const [isEditing, setIsEditing] = useState(null);
-  const [editedNote, setEditedNote] = useState("");
+  const scale = useSharedValue(1); // Wartość dla animacji skalowania
 
-  const scale = useSharedValue(1);
-
+  // ---------- EFEKTY ----------
   useEffect(() => {
     if (!id) {
       Alert.alert("Error", "Task ID is missing!");
       router.push("/"); // Przekierowanie na stronę główną
-      return;
+    } else {
+      loadVideoUri(id); // Wczytaj URI wideo
+      setNotes(task?.notes || []); // Zaktualizuj lokalny stan notatek
+      setStatus(task?.status || "Do zrobienia"); // Zaktualizuj status
     }
-
-    // Załaduj URI wideo z pamięci
-    loadVideoUri(id);
-
-    // Zaktualizuj lokalny stan na podstawie taska
-    setNotes(task?.notes || []);
-    setStatus(task?.status || "Do zrobienia");
   }, [id, task]);
 
+  // ---------- FUNKCJE POMOCNICZE ----------
+
+  // Zapisz URI wideo do pamięci
   const saveVideoUri = async (taskId, uri) => {
     try {
       await AsyncStorage.setItem(`videoUri-${taskId}`, uri);
@@ -54,30 +62,20 @@ export default function TaskDetails() {
     }
   };
 
+  // Wczytaj URI wideo z pamięci
   const loadVideoUri = async (taskId) => {
     try {
       const savedUri = await AsyncStorage.getItem(`videoUri-${taskId}`);
       if (savedUri) {
-        console.log(`Video URI loaded for task ${taskId}:`, savedUri);
         setVideoUri(savedUri);
-      } else {
-        console.log(`No saved video URI for task ${taskId}`);
+        console.log(`Video URI loaded for task ${taskId}:`, savedUri);
       }
     } catch (error) {
       console.error("Failed to load video URI:", error);
     }
   };
 
-  const getFormattedDate = () => {
-    const now = new Date();
-    return `${now.getDate().toString().padStart(2, "0")}.${(now.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}.${now.getFullYear()} ${now
-      .getHours()
-      .toString()
-      .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-  };
-
+  // Dodaj nową notatkę
   const addNote = () => {
     if (note.trim()) {
       const newNote = { text: note, date: getFormattedDate() };
@@ -88,17 +86,20 @@ export default function TaskDetails() {
     }
   };
 
+  // Usuń notatkę
   const deleteNote = (index) => {
     const updatedNotes = notes.filter((_, i) => i !== index);
     setNotes(updatedNotes);
     updateTask(id, { notes: updatedNotes });
   };
 
+  // Rozpocznij edytowanie notatki
   const startEditing = (index) => {
     setIsEditing(index);
     setEditedNote(notes[index].text);
   };
 
+  // Zapisz edytowaną notatkę
   const saveEditedNote = () => {
     const updatedNotes = [...notes];
     updatedNotes[isEditing] = { ...updatedNotes[isEditing], text: editedNote };
@@ -108,79 +109,67 @@ export default function TaskDetails() {
     setEditedNote("");
   };
 
+  // Pobierz aktualną datę w sformatowanej postaci
+  const getFormattedDate = () => {
+    const now = new Date();
+    return `${now.getDate().toString().padStart(2, "0")}.${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}.${now.getFullYear()} ${now
+      .getHours()
+      .toString()
+      .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+  };
+
+  // Animacja skalowania przy zmianie statusu
   const animateScale = () => {
     scale.value = withSpring(1.1, {}, () => {
       scale.value = withSpring(1);
     });
   };
 
-  const scaleStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-    };
-  });
+  const scaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
+  // ---------- RENDEROWANIE ----------
   return (
     <Animated.View
-      entering={SlideInLeft.springify()} // Animacja wejścia
-      exiting={SlideOutLeft.springify()} // Animacja wyjścia
+      entering={SlideInLeft.springify()}
+      exiting={SlideOutLeft.springify()}
       layout={Layout.springify()}
       className="flex-1"
     >
       <SafeAreaView className="flex-1 bg-white">
         <View className="flex-1 p-5">
-          <Text className="text-2xl font-bold text-center mb-3">{task?.name || "Task Details"}</Text>
+          {/* Nazwa zadania */}
+          <Text className="text-2xl font-bold text-center mb-3">
+            {task?.name || "Task Details"}
+          </Text>
 
-          {/* Status */}
+          {/* Status zadania */}
           <Text className="text-base mt-2">Status:</Text>
           <View className="flex-row mt-2">
-            <Animated.View style={scaleStyle}>
-              <Pressable
-                onPress={() => {
-                  setStatus("Do zrobienia");
-                  updateTask(id, { status: "Do zrobienia" });
-                  animateScale();
-                }}
-                className={`px-3 py-2 mr-2 rounded border ${
-                  status === "Do zrobienia" ? "border-2 border-gray-400" : "border-gray-300"
-                } bg-red-200`}
-              >
-                <Text className="text-gray-800">Do zrobienia</Text>
-              </Pressable>
-            </Animated.View>
-
-            <Animated.View style={scaleStyle}>
-              <Pressable
-                onPress={() => {
-                  setStatus("W trakcie");
-                  updateTask(id, { status: "W trakcie" });
-                  animateScale();
-                }}
-                className={`px-3 py-2 mr-2 rounded border ${
-                  status === "W trakcie" ? "border-2 border-gray-400" : "border-gray-300"
-                } bg-yellow-200`}
-              >
-                <Text className="text-gray-800">W trakcie</Text>
-              </Pressable>
-            </Animated.View>
-
-            <Animated.View style={scaleStyle}>
-              <Pressable
-                onPress={() => {
-                  setStatus("Gotowe");
-                  updateTask(id, { status: "Gotowe" });
-                  animateScale();
-                }}
-                className={`px-3 py-2 mr-2 rounded border ${
-                  status === "Gotowe" ? "border-2 border-gray-400" : "border-gray-300"
-                } bg-green-200`}
-              >
-                <Text className="text-gray-800">Gotowe</Text>
-              </Pressable>
-            </Animated.View>
+            {["Do zrobienia", "W trakcie", "Gotowe"].map((statusName) => (
+              <Animated.View key={statusName} style={scaleStyle}>
+                <Pressable
+                  onPress={() => {
+                    setStatus(statusName);
+                    updateTask(id, { status: statusName });
+                    animateScale();
+                  }}
+                  className={`px-3 py-2 mr-2 rounded border ${
+                    status === statusName
+                      ? "border-2 border-gray-400"
+                      : "border-gray-300"
+                  } ${statusName === "Do zrobienia" ? "bg-red-200" : statusName === "W trakcie" ? "bg-yellow-200" : "bg-green-200"}`}
+                >
+                  <Text className="text-gray-800">{statusName}</Text>
+                </Pressable>
+              </Animated.View>
+            ))}
           </View>
 
-          {/* Dodawanie notatki */}
+          {/* Dodawanie notatek */}
           <Text className="text-base mt-4">Add a Note:</Text>
           <TextInput
             value={note}
@@ -194,7 +183,6 @@ export default function TaskDetails() {
           >
             <Text className="text-gray-800 text-base">Add</Text>
           </Pressable>
-
           {/* Otwieranie kamery */}
           <Pressable
             onPress={() => {
@@ -205,16 +193,14 @@ export default function TaskDetails() {
             <Text className="text-center text-blue-600">Open Camera</Text>
           </Pressable>
 
+
           {/* Lista notatek */}
           <FlatList
             data={notes}
             keyExtractor={(_, index) => index.toString()}
             className="mt-3"
             renderItem={({ item, index }) => (
-              <Animated.View
-                layout={Layout.springify()}
-                className="bg-yellow-100 p-3 rounded mt-2"
-              >
+              <Animated.View layout={Layout.springify()} className="bg-yellow-100 p-3 rounded mt-2">
                 {isEditing === index ? (
                   <>
                     <TextInput
@@ -223,16 +209,10 @@ export default function TaskDetails() {
                       className="border border-gray-300 px-2 py-1 rounded"
                     />
                     <View className="flex-row justify-end mt-2">
-                      <Pressable
-                        onPress={saveEditedNote}
-                        className="bg-green-400 px-2 py-1 rounded mr-2"
-                      >
+                      <Pressable onPress={saveEditedNote} className="bg-green-400 px-2 py-1 rounded mr-2">
                         <Text className="text-white">Save</Text>
                       </Pressable>
-                      <Pressable
-                        onPress={() => setIsEditing(null)}
-                        className="bg-gray-300 px-2 py-1 rounded"
-                      >
+                      <Pressable onPress={() => setIsEditing(null)} className="bg-gray-300 px-2 py-1 rounded">
                         <Text className="text-gray-800">Cancel</Text>
                       </Pressable>
                     </View>
@@ -242,16 +222,10 @@ export default function TaskDetails() {
                     <Text className="text-xs text-gray-500">{item.date}</Text>
                     <Text className="text-base text-gray-800 mb-2">{item.text}</Text>
                     <View className="flex-row justify-end">
-                      <Pressable
-                        onPress={() => startEditing(index)}
-                        className="bg-blue-200 px-2 py-1 rounded mr-2"
-                      >
+                      <Pressable onPress={() => startEditing(index)} className="bg-blue-200 px-2 py-1 rounded mr-2">
                         <Text className="text-gray-800">Edit</Text>
                       </Pressable>
-                      <Pressable
-                        onPress={() => deleteNote(index)}
-                        className="bg-red-200 py-1 px-2 rounded-lg"
-                      >
+                      <Pressable onPress={() => deleteNote(index)} className="bg-red-200 py-1 px-2 rounded-lg">
                         <Text className="text-black">Delete</Text>
                       </Pressable>
                     </View>
@@ -277,16 +251,13 @@ export default function TaskDetails() {
                 }}
                 useNativeControls
                 resizeMode="contain"
-                shouldPlay={false}
-                onLoad={() => console.log("Video loaded successfully")}
-                onError={(e) => console.error("Video error:", e)}
               />
             </View>
           ) : (
             <Text className="text-center text-gray-400 mt-4">No video recorded yet!</Text>
           )}
 
-          {/* Przycisk powrotu */}
+          {/* Powrót */}
           <View className="absolute bottom-8 left-5 right-5">
             <Pressable
               onPress={() => router.push("/")}
