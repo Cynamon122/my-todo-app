@@ -1,8 +1,8 @@
 import { Slot } from "expo-router";
-import { SafeAreaView, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 
 export default function Layout() {
-    // Główny układ aplikacji, w którym Slot dynamicznie wstawia zawartość stron na podstawie ścieżek URL
+  // Główny układ aplikacji, w którym Slot dynamicznie wstawia zawartość stron na podstawie ścieżek URL
   return <Slot />;
 }
 

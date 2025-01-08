@@ -1,18 +1,18 @@
-import React, { useState, useRef, useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Slider from "@react-native-community/slider";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
+  Alert,
+  Animated,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Alert,
+  View,
 } from "react-native";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import Slider from "@react-native-community/slider";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 
 export default function CameraScreen() {
   // ---------- STANY ----------
@@ -35,6 +35,29 @@ export default function CameraScreen() {
   }, [id]);
 
   // ---------- FUNKCJE ----------
+
+  const takePhoto = async () => {
+    if (cameraRef.current) {
+      try {
+        const photo = await cameraRef.current.takePictureAsync();
+        if (photo.uri) {
+          console.log("Photo taken:", photo.uri);
+
+          // Zapisz URI w AsyncStorage
+          await AsyncStorage.setItem(`photoUri-${id}`, photo.uri);
+
+          // Nawiguj do TaskDetails
+          router.push(`/task/${id}`);
+        } else {
+          Alert.alert("Error", "Failed to retrieve photo URI.");
+        }
+      } catch (error) {
+        console.error("Error taking photo:", error);
+        Alert.alert("Error", "Failed to take photo.");
+      }
+    }
+  };
+
 
   // Zapisz URI wideo do pamięci
   const saveVideoUri = async (uri) => {
@@ -187,6 +210,10 @@ export default function CameraScreen() {
           <TouchableOpacity style={styles.iconButton} onPress={toggleTorch}>
             <Ionicons name={torchOn ? "flashlight" : "flashlight-outline"} size={32} color="#fff" />
           </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={takePhoto}>
+            <Ionicons name="camera-outline" size={40} color="#1e90ff" />
+          </TouchableOpacity>
+
           {isRecording ? (
             <TouchableOpacity style={styles.iconButton} onPress={stopRecording}>
               <Ionicons name="stop-circle-outline" size={40} color="#ff4040" />

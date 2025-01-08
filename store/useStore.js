@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
 
 // Klucz dla przechowywania danych zadań w AsyncStorage
 const TASKS_KEY = "tasks";
@@ -11,7 +11,7 @@ const useStore = create((set, get) => ({
   task: "", // Aktualna treść nowego zadania
 
   // ---------- AKCJE ----------
-  
+
   // Dodanie nowego zadania
   addTask: async () => {
     const { tasks, task } = get();

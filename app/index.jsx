@@ -1,22 +1,20 @@
+import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import {
-  SafeAreaView,
-  View,
-  Text,
+  Alert,
   FlatList,
   Pressable,
+  SafeAreaView,
+  Text,
   TextInput,
-  Alert,
+  View,
 } from "react-native";
 import Animated, {
   Layout,
-  SlideInLeft,
   SlideInRight,
-  SlideOutLeft,
-  SlideOutRight,
+  SlideOutRight
 } from "react-native-reanimated";
 import useStore from "../store/useStore";
-import { useRouter } from "expo-router";
 
 export default function Home() {
   // ---------- STANY I FUNKCJE ZE STORE ----------
@@ -28,7 +26,7 @@ export default function Home() {
   }, []);
 
   // ---------- FUNKCJE POMOCNICZE ----------
-  
+
   // Potwierdzenie usunięcia wszystkich zadań
   const confirmClearTasks = () => {
     Alert.alert("Confirm", "Are you sure you want to delete all tasks?", [
@@ -73,11 +71,11 @@ export default function Home() {
           <TextInput
             value={task}
             onChangeText={setTask}
-            placeholder="Add a new task..."
+            placeholder="Dodaj nowe zadanie..."
             className="flex-1 border border-gray-300 rounded-lg p-2 mr-2"
           />
           <Pressable onPress={handleAddTask} className="bg-gray-300 py-2 px-4 rounded-lg">
-            <Text className="font-bold text-gray-800">Add</Text>
+            <Text className="font-bold text-gray-800">Dodaj</Text>
           </Pressable>
         </View>
 
@@ -100,16 +98,16 @@ export default function Home() {
 
               {/* Usuń zadanie */}
               <Pressable onPress={() => deleteTask(item.id)} className="bg-red-200 py-1 px-2 rounded-lg">
-                <Text className="text-black">Delete</Text>
+                <Text className="text-black">Usuń</Text>
               </Pressable>
             </Animated.View>
           )}
-          ListEmptyComponent={<Text className="text-center text-gray-400">No tasks yet!</Text>}
+          ListEmptyComponent={<Text className="text-center text-gray-400">Brak zadań!</Text>}
         />
 
         {/* Usuń wszystkie zadania */}
         <Pressable onPress={confirmClearTasks} className="mt-4 bg-red-200 py-3 rounded-lg">
-          <Text className="text-center text-red-500 font-bold">Clear All Tasks</Text>
+          <Text className="text-center text-red-500 font-bold">Usuń wszystkie zadania</Text>
         </Pressable>
       </View>
     </SafeAreaView>
